@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { AlertCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { createTicket, deleteTicket, getTickets, updateTicket } from "@/lib/tickets"
+import { createTicket, deleteTicket, getTickets, updateTicket, subscribeToTickets } from "@/lib/tickets"
 import { NumberLimitsDisplay } from "@/components/ui/number-limits-display"
 import { getNumberStyle } from "@/lib/prize-utils"
 import { SkipLink } from "@/components/ui/skip-link"
@@ -81,7 +81,9 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false)
   const [clientName, setClientName] = useState("")
-  const [ticketRows, setTicketRows] = useState<TicketRow[]>([{ id: "1", times: "", actions: "", value: 0 }])
+  // Usar generateUUID para garantizar IDs únicos en las filas de tickets
+  // Usar generateUUID para garantizar IDs únicos en las filas de tickets
+  const [ticketRows, setTicketRows] = useState<TicketRow[]>([{ id: generateUUID(), times: "", actions: "", value: 0 }])
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -167,11 +169,36 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
 
   // Referencia para el controlador de cancelación
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Referencia para rastrear el último ID de ticket creado/actualizado
+  const lastProcessedTicketRef = useRef<string | null>(null);
+  // Referencia para rastrear los tickets que deberían existir pero no se han encontrado
+  const pendingTicketsRef = useRef<Set<string>>(new Set());
 
-  // En la función fetchEvent, modificar cómo se obtienen los tickets
+  // En la función fetchEvent, optimizar cómo se obtienen los tickets y mejorar el manejo de bloqueos
   const fetchEvent = useCallback(async () => {
+    // Implementar un sistema de bloqueo más robusto para evitar actualizaciones innecesarias
     // No actualizar si el modal de creación de tickets está abierto o se está procesando un ticket
-    if (!resolvedEventId || isCreateTicketOpen || isProcessingTicket) return
+    // o si hay una operación global de procesamiento de ticket en curso
+    if (!resolvedEventId) {
+      console.log('No hay ID de evento resuelto, evitando fetchEvent')
+      return
+    }
+    
+    // Verificar todas las condiciones de bloqueo en una sola comprobación
+    const isBlocked = isCreateTicketOpen || 
+                      isProcessingTicket || 
+                      (typeof window !== 'undefined' && window._isProcessingTicket) ||
+                      (typeof window !== 'undefined' && window._isFetchingEvent);
+                      
+    if (isBlocked) {
+      console.log('Evitando fetchEvent: operación bloqueada por procesamiento en curso')
+      return
+    }
+    
+    // Establecer bandera global para evitar múltiples fetchEvent simultáneos
+    if (typeof window !== 'undefined') {
+      window._isFetchingEvent = true;
+    }
 
     // Cancelar cualquier solicitud pendiente anterior
     if (abortControllerRef.current) {
@@ -190,6 +217,10 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
     if (!currentVendorEmail) {
       setStatusMessage("Error: No se encontró email de vendedor actual")
       setShowStatusMessage(true)
+      // Liberar el bloqueo global
+      if (typeof window !== 'undefined') {
+        window._isFetchingEvent = false;
+      }
       return
     }
 
@@ -271,33 +302,119 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
       if (!signal.aborted) {
         setIsLoading(false)
       }
+      // Liberar el bloqueo global
+      if (typeof window !== 'undefined') {
+        window._isFetchingEvent = false;
+      }
     }
-  }, [calculateTotalPrizeMemoized, resolvedEventId, router])
+  }, [calculateTotalPrizeMemoized, resolvedEventId, isCreateTicketOpen, isProcessingTicket])
 
   useEffect(() => {
     if (resolvedEventId) {
-      fetchEvent()
+      // Cargar datos iniciales solo si no hay operaciones críticas en curso
+      if (!isCreateTicketOpen && !isProcessingTicket && !(typeof window !== 'undefined' && window._isProcessingTicket)) {
+        fetchEvent()
+      }
       
-      // Usar un intervalo más largo (180000 ms = 3 minutos) para reducir la frecuencia de actualizaciones
-      // y solo actualizar cuando no hay operaciones críticas en curso
-      const interval = setInterval(() => {
-        // Solo ejecutar fetchEvent si no hay operaciones críticas en curso
-        if (!isCreateTicketOpen && !isProcessingTicket) {
-          fetchEvent()
+      // Referencia para el intervalo de actualización periódica
+      let intervalId: NodeJS.Timeout | null = null;
+      
+      // Variable para rastrear el último tiempo de actualización
+      let lastUpdateTime = Date.now();
+      
+      // Función para verificar si se debe actualizar
+      const shouldUpdate = () => {
+        // No actualizar si hay operaciones críticas en curso
+        if (isCreateTicketOpen || isProcessingTicket || (typeof window !== 'undefined' && window._isProcessingTicket) || 
+            (typeof window !== 'undefined' && window._isFetchingEvent)) {
+          return false;
         }
-      }, 180000)
+        
+        // Limitar la frecuencia de actualizaciones (mínimo 2 minutos entre actualizaciones)
+        const now = Date.now();
+        if (now - lastUpdateTime < 120000) { // 2 minutos
+          return false;
+        }
+        
+        // Actualizar el timestamp de última actualización
+        lastUpdateTime = now;
+        return true;
+      };
+      
+      // Configurar intervalo con tiempo más largo (5 minutos) para reducir la carga del servidor
+      intervalId = setInterval(() => {
+        if (shouldUpdate()) {
+          console.log('Ejecutando actualización periódica programada');
+          fetchEvent();
+        }
+      }, 300000); // 5 minutos
+      
+      // Suscribirse a cambios en tiempo real de tickets con optimizaciones
+      const unsubscribe = subscribeToTickets(resolvedEventId, (updatedTickets) => {
+        // Verificar si hay operaciones críticas en curso antes de procesar la actualización
+        if (isCreateTicketOpen || isProcessingTicket || (typeof window !== 'undefined' && window._isProcessingTicket)) {
+          console.log('Ignorando actualización de suscripción durante operación crítica');
+          return;
+        }
+        
+        console.log("Tickets actualizados mediante suscripción:", updatedTickets.length);
+        
+        // Actualizar el estado del evento con los tickets actualizados usando una función de actualización
+        setEvent(prevEvent => {
+          if (!prevEvent) return null;
+          
+          // Calcular totales una sola vez fuera del objeto para mejorar rendimiento
+          const totalSellerTimes = updatedTickets.reduce(
+            (sum, ticket) => sum + (ticket.rows || []).reduce((rowSum, row) => rowSum + (Number(row.times) || 0), 0),
+            0,
+          );
+          
+          const totalSold = updatedTickets.reduce((sum, ticket) => sum + ticket.amount, 0);
+          
+          // Crear el evento actualizado
+          const updatedEvent = {
+            ...prevEvent,
+            totalSold,
+            sellerTimes: totalSellerTimes,
+            tickets: updatedTickets.map(ticket => ({
+              ...ticket,
+              numbers: ticket.numbers || '' // Ensure numbers is always a string
+            })),
+          };
+          
+          // Calcular el premio solo una vez
+          updatedEvent.prize = calculateTotalPrizeMemoized(updatedEvent);
+          return updatedEvent;
+        });
+        
+        // Actualizar el timestamp de última actualización para evitar actualizaciones duplicadas
+        lastUpdateTime = Date.now();
+      });
       
       // Función de limpieza que se ejecuta cuando el componente se desmonta
       return () => {
-        clearInterval(interval)
+        // Limpiar el intervalo
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+        
+        // Cancelar la suscripción
+        unsubscribe();
         
         // Cancelar cualquier solicitud pendiente para evitar actualizaciones de estado en componentes desmontados
         if (abortControllerRef.current) {
-          abortControllerRef.current.abort()
+          abortControllerRef.current.abort();
         }
-      }
+        
+        // Limpiar banderas globales si este componente las estableció
+        if (typeof window !== 'undefined') {
+          if (window._isFetchingEvent) {
+            window._isFetchingEvent = false;
+          }
+        }
+      };
     }
-  }, [fetchEvent, resolvedEventId, isCreateTicketOpen, isProcessingTicket])
+  }, [fetchEvent, resolvedEventId, isCreateTicketOpen, isProcessingTicket, calculateTotalPrizeMemoized])
 
   // Efecto para migrar tickets sin vendedor
   useEffect(() => {
@@ -333,10 +450,17 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
 
   // Mantener las demás funciones
   const handleInputChange = (rowId: string, field: "times" | "actions", value: string) => {
-    // Mantener la implementación existente
-    if (field === "actions") {
-      const numValue = Number.parseInt(value, 10)
-      if (isNaN(numValue) || numValue < 0 || numValue > 99) return
+    // Implementación mejorada para permitir borrado en el campo actions
+    if (field === "actions" && value !== "") {
+      // Verificar si es una operación de borrado (longitud menor que el valor actual)
+      const currentRow = ticketRows.find(row => row.id === rowId)
+      const isDeleting = currentRow && value.length < currentRow.actions.length
+      
+      // Solo validar si no es una operación de borrado
+      if (!isDeleting) {
+        const numValue = Number.parseInt(value, 10)
+        if (isNaN(numValue) || numValue < 0 || numValue > 99) return
+      }
     }
 
     setTicketRows((rows) =>
@@ -403,10 +527,43 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
   }
 
   const handleComplete = async () => {
-    // Mantener la implementación existente
+    // Verificar condiciones básicas
     if (!event || !resolvedEventId) return
     
-    // Activar la bandera de procesamiento para evitar actualizaciones durante la operación
+    // Mostrar mensaje de procesamiento inmediatamente para feedback visual
+    setStatusMessage(selectedTicket ? "Actualizando ticket..." : "Creando nuevo ticket...")
+    setShowStatusMessage(true)
+    
+    // Implementar un sistema de bloqueo más robusto con timestamp para evitar bloqueos permanentes
+    const now = Date.now();
+    const lastProcessingTime = typeof window !== 'undefined' ? window._ticketProcessingTimestamp || 0 : 0;
+    
+    // Si hay un proceso en curso pero ha pasado demasiado tiempo (15 segundos), considerarlo como un bloqueo huérfano
+    const isStaleProcessing = now - lastProcessingTime > 15000;
+    
+    // Verificar si hay un proceso activo que no sea huérfano
+    if (typeof window !== 'undefined' && window._isProcessingTicket && !isStaleProcessing) {
+      console.log('Ya hay un proceso de ticket en curso, evitando duplicación')
+      setStatusMessage({
+        status: "warning",
+        text: "Ya hay una operación en curso, por favor espere..."
+      })
+      setShowStatusMessage(true)
+      return
+    }
+    
+    // Si había un bloqueo huérfano, registrarlo y continuar
+    if (isStaleProcessing && typeof window !== 'undefined' && window._isProcessingTicket) {
+      console.warn('Detectado bloqueo huérfano de procesamiento de ticket, liberando...')
+    }
+    
+    // Establecer la bandera global con timestamp para prevenir duplicación
+    if (typeof window !== 'undefined') {
+      window._isProcessingTicket = true
+      window._ticketProcessingTimestamp = now
+    }
+    
+    // También establecer el estado local
     setIsProcessingTicket(true)
     
     // Cancelar cualquier solicitud pendiente anterior
@@ -418,27 +575,72 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
     abortControllerRef.current = new AbortController()
     const signal = abortControllerRef.current.signal
 
-    setStatusMessage(selectedTicket ? "Actualizando ticket..." : "Creando nuevo ticket...")
     const currentVendorEmail = localStorage.getItem("currentVendorEmail")
     if (!currentVendorEmail) {
-      setStatusMessage("Error: No se encontró email de vendedor actual")
-      setIsProcessingTicket(false) // Desactivar la bandera si hay error
+      setStatusMessage({
+        status: "error",
+        text: "Error: No se encontró email de vendedor actual"
+      })
+      setShowStatusMessage(true)
+      // Limpiar ambas banderas
+      setIsProcessingTicket(false)
+      if (typeof window !== 'undefined') {
+        window._isProcessingTicket = false
+      }
       return
     }
 
     const totalTimes = ticketRows.reduce((sum, row) => sum + (Number(row.times) || 0), 0)
     const totalPurchase = totalTimes * 0.2
 
+    // Validar que el ticket tenga datos válidos
+    if (clientName.trim() === "") {
+      setStatusMessage({
+        status: "error",
+        text: "Error: Debe ingresar el nombre del cliente"
+      })
+      setShowStatusMessage(true)
+      setIsProcessingTicket(false)
+      if (typeof window !== 'undefined') {
+        window._isProcessingTicket = false
+      }
+      return
+    }
+
+    // Validar que haya al menos una fila con datos
+    const hasValidRow = ticketRows.some(row => 
+      row.times && Number(row.times) > 0 && row.actions && row.actions.trim() !== ""
+    );
+    
+    if (!hasValidRow) {
+      setStatusMessage({
+        status: "error",
+        text: "Error: Debe ingresar al menos un número con cantidad válida"
+      })
+      setShowStatusMessage(true)
+      setIsProcessingTicket(false)
+      if (typeof window !== 'undefined') {
+        window._isProcessingTicket = false
+      }
+      return
+    }
+
+    // Generar un ID único para el ticket nuevo
+    const ticketId = selectedTicket ? selectedTicket.id : generateUUID()
+    console.log(`Procesando ticket con ID: ${ticketId} (${selectedTicket ? 'actualización' : 'creación'})`)
+    
+    // Guardar el ID del ticket en la referencia para rastrearlo después
+    lastProcessedTicketRef.current = ticketId;
+
     const ticketData = {
-      // Usar nuestra función generateUUID en lugar de crypto.randomUUID()
-      id: selectedTicket ? selectedTicket.id : generateUUID(),
+      id: ticketId,
       clientName,
       amount: totalPurchase,
       numbers: ticketRows
+        .filter(row => row.actions && row.times && Number(row.times) > 0) // Solo incluir filas válidas
         .map((row) => row.actions)
-        .filter(Boolean)
         .join(", "),
-      rows: ticketRows,
+      rows: ticketRows.filter(row => row.actions && row.times && Number(row.times) > 0), // Solo incluir filas válidas
       vendorEmail: currentVendorEmail, // Asegurar que siempre tenga vendorEmail
     }
 
@@ -454,13 +656,20 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
       }
       
       // Verificar si el resultado es un objeto de error (para createTicket y updateTicket)
-      if (result && 'success' in result && result.success === false) {
+      if (result && typeof result === 'object' && 'success' in result && result.success === false) {
         // Guardar el error en el estado para mostrarlo en el modal
         setTicketError({
           message: result.message,
           status: result.status as "warning" | "error" | "info",
           numberInfo: result.numberInfo
         })
+        // Limpiar ambas banderas si hay error de validación
+        setIsProcessingTicket(false)
+        if (typeof window !== 'undefined') {
+          window._isProcessingTicket = false
+        }
+        // Limpiar la referencia del ticket si hubo error
+        lastProcessedTicketRef.current = null;
         // No cerrar el diálogo cuando hay un error de límites de números
         return
       }
@@ -468,28 +677,141 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
       // Limpiar cualquier error previo
       setTicketError(null)
       
-      if (selectedTicket) {
-        setStatusMessage({
-          status: "success",
-          text: "Ticket actualizado correctamente"
-        })
-      } else {
-        setStatusMessage({
-          status: "success",
-          text: "Ticket creado correctamente"
-        })
+      // Preparar mensaje de éxito
+      const successMessage = {
+        status: "success",
+        text: selectedTicket ? "Ticket actualizado correctamente" : "Ticket creado correctamente"
       }
-      setShowStatusMessage(true)
-
-      // Desactivar la bandera de procesamiento antes de cerrar el modal
-      setIsProcessingTicket(false)
       
-      // Actualizar datos después de completar la operación
-      fetchEvent()
+      // Guardar los datos que necesitamos para después
+      const wasCreateTicketOpen = isCreateTicketOpen
+      
+      // Resetear los estados del formulario
       setClientName("")
-      setTicketRows([{ id: "1", times: "", actions: "", value: 0 }])
+      setTicketRows([{ id: generateUUID(), times: "", actions: "", value: 0 }])
       setSelectedTicket(null)
+      
+      // Cerrar el modal
       setIsCreateTicketOpen(false)
+      
+      // Mostrar mensaje de éxito
+      setStatusMessage(successMessage)
+      setShowStatusMessage(true)
+      
+      // Actualización inmediata de la interfaz con el nuevo ticket
+      // En lugar de esperar a que el ticket aparezca en la base de datos, lo añadimos directamente al estado
+      console.log(`Actualizando interfaz inmediatamente con el ticket ${ticketId}`);
+      
+      // Si el ticket fue creado exitosamente, actualizamos la interfaz inmediatamente
+      if (result) {
+        // Añadir el nuevo ticket a la lista actual o reemplazar el ticket actualizado
+        setEvent(prevEvent => {
+          if (!prevEvent) return null;
+          
+          // Determinar la lista actualizada de tickets
+          let updatedTickets;
+          if (selectedTicket) {
+            // Si estamos actualizando, reemplazar el ticket existente
+            updatedTickets = prevEvent.tickets.map(t => 
+              t.id === ticketId ? result as Ticket : t
+            );
+          } else {
+            // Si estamos creando, añadir el nuevo ticket al principio de la lista
+            updatedTickets = [result as Ticket, ...prevEvent.tickets];
+          }
+          
+          // Calcular totales con la nueva lista de tickets
+          const totalSellerTimes = updatedTickets.reduce(
+            (sum, ticket) => sum + (ticket.rows || []).reduce((rowSum, row) => rowSum + (Number(row.times) || 0), 0),
+            0,
+          );
+          
+          const totalSold = updatedTickets.reduce((sum, ticket) => sum + ticket.amount, 0);
+          
+          // Crear el evento actualizado
+          const updatedEvent = {
+            ...prevEvent,
+            totalSold,
+            sellerTimes: totalSellerTimes,
+            tickets: updatedTickets.map(ticket => ({
+              ...ticket,
+              numbers: ticket.numbers || '' // Asegurar que numbers siempre sea un string
+            })),
+          };
+          
+          // Calcular el premio
+          updatedEvent.prize = calculateTotalPrizeMemoized(updatedEvent);
+          return updatedEvent;
+        });
+      }
+      
+      // Además de la actualización inmediata, realizamos una verificación en segundo plano
+      // para asegurar que los datos estén sincronizados con la base de datos
+      let retryCount = 0;
+      const maxRetries = 3; // Reducir el número de reintentos ya que tenemos actualización inmediata
+      
+      const verifyTicketExists = async () => {
+        try {
+          console.log(`Verificando sincronización del ticket ${ticketId} (intento ${retryCount + 1}/${maxRetries})`);
+          const tickets = await getTickets(resolvedEventId);
+          
+          // Verificar si el ticket está en la lista
+          const foundTicket = tickets.find(t => t.id === ticketId);
+          
+          if (foundTicket) {
+            console.log(`Ticket ${ticketId} sincronizado correctamente`);
+            return true; // Éxito, salir del sistema de reintentos
+          } else if (retryCount < maxRetries - 1) {
+            // Si no se encontró y aún hay reintentos disponibles, esperar y reintentar
+            retryCount++;
+            console.log(`Ticket ${ticketId} no sincronizado, reintentando en ${retryCount * 300}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryCount * 300)); // Tiempo de espera más corto
+            return await verifyTicketExists();
+          } else {
+            // Si se agotaron los reintentos, forzar una actualización completa
+            console.warn(`Ticket ${ticketId} no sincronizado después de ${maxRetries} intentos, forzando actualización completa`);
+            const forceController = new AbortController();
+            try {
+              const forcedTickets = await getTickets(resolvedEventId, forceController.signal);
+              // Actualizar el estado solo si es necesario
+              setEvent(prevEvent => {
+                if (!prevEvent) return null;
+                return {
+                  ...prevEvent,
+                  tickets: forcedTickets.map(ticket => ({
+                    ...ticket,
+                    numbers: ticket.numbers || ''
+                  })),
+                };
+              });
+            } catch (forceError) {
+              console.error("Error en actualización forzada:", forceError);
+            }
+            return false;
+          }
+        } catch (error) {
+          console.error(`Error verificando ticket ${ticketId}:`, error);
+          return false;
+        }
+      };
+      
+      // Iniciar el proceso de verificación en segundo plano
+      setTimeout(async () => {
+        try {
+          await verifyTicketExists();
+        } catch (error) {
+          console.error("Error en el proceso de verificación de ticket:", error);
+        } finally {
+          // Limpiar las banderas después de completar todo el proceso
+          if (typeof window !== 'undefined') {
+            window._isProcessingTicket = false;
+            console.log('Bandera de procesamiento de ticket liberada');
+          }
+          setIsProcessingTicket(false);
+          lastProcessedTicketRef.current = null;
+        }
+      }, 100); // Iniciar verificación más rápido
+    
     } catch (error) {
       console.error("Error saving ticket:", error)
       setStatusMessage({
@@ -499,12 +821,18 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
       setShowStatusMessage(true)
       // Desactivar la bandera de procesamiento en caso de error
       setIsProcessingTicket(false)
+      if (typeof window !== 'undefined') {
+        window._isProcessingTicket = false
+      }
+      // Limpiar la referencia del ticket si hubo error
+      lastProcessedTicketRef.current = null;
       // No cerrar el diálogo cuando hay un error
     }
   }
 
   const addNewRow = () => {
-    const newRowId = String(Date.now())
+    // Usar generateUUID para garantizar IDs únicos y evitar duplicaciones
+    const newRowId = generateUUID()
     setTicketRows((prevRows) => [...prevRows, { id: newRowId, times: "", actions: "", value: 0 }])
   }
 
@@ -721,7 +1049,8 @@ export default function EventDetailsPage({ params }: { params: { id: string } | 
             onClick={() => {
               setSelectedTicket(null)
               setClientName("")
-              setTicketRows([{ id: "1", times: "", actions: "", value: 0 }])
+              // Usar crypto.randomUUID() para garantizar IDs únicos al resetear el formulario
+    setTicketRows([{ id: generateUUID(), times: "", actions: "", value: 0 }])
               // Abrir directamente el diálogo sin mostrar pantalla de carga
               setIsCreateTicketOpen(true)
               // Asegurar que no se muestre la pantalla de carga

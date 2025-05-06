@@ -5,7 +5,13 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const Dialog = DialogPrimitive.Root
+// Definir Dialog como un componente React para mayor compatibilidad
+const DialogRoot = DialogPrimitive.Root
+const Dialog = DialogRoot
+Dialog.displayName = DialogPrimitive.Root.displayName
+
+// Exportar Dialog como una exportación nombrada
+export { Dialog, DialogRoot }
 
 const DialogTrigger = DialogPrimitive.Trigger
 
@@ -41,7 +47,11 @@ const DialogContent = React.forwardRef<
   
   // Buscar si hay un DialogDescription entre los hijos
   const hasDescriptionComponent = React.Children.toArray(children).some(
-    (child) => React.isValidElement(child) && child.type === DialogDescription
+    (child) => React.isValidElement(child) && 
+    child.type && 
+    typeof child.type === 'object' && 
+    'displayName' in child.type && 
+    child.type.displayName === 'DialogDescription'
   )
   
   return (
@@ -126,7 +136,6 @@ const DialogDescription = React.forwardRef<
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
 export {
-  Dialog,
   DialogPortal,
   DialogOverlay,
   DialogClose,
