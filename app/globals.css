@@ -1,0 +1,569 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-montserrat: "Montserrat", sans-serif;
+
+  /* Colores base */
+  --primary: 0 100% 71%;
+  --primary-hover: 0 100% 66%;
+  --secondary: 177 61% 55%;
+  --secondary-hover: 177 61% 50%;
+  --accent: 65 99% 66%;
+  --accent-hover: 65 99% 61%;
+
+  /* Variables del sistema */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --muted: 0 0% 40%;
+  --muted-foreground: 0 0% 60%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 0 100% 71%;
+
+  /* Radio de bordes */
+  --radius: 1rem;
+
+  /* Espaciado base */
+  --spacing-base: 1rem;
+  --spacing-xs: calc(var(--spacing-base) * 0.25);
+  --spacing-sm: calc(var(--spacing-base) * 0.5);
+  --spacing-md: var(--spacing-base);
+  --spacing-lg: calc(var(--spacing-base) * 1.5);
+  --spacing-xl: calc(var(--spacing-base) * 2);
+  --spacing-2xl: calc(var(--spacing-base) * 3);
+
+  /* Tamaños de fuente */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+}
+
+/* Estilos base */
+@layer base {
+  html {
+    @apply antialiased scroll-smooth;
+    font-size: 16px;
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans min-h-screen;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Tipografía */
+  h1 {
+    @apply text-2xl font-bold md:text-3xl lg:text-4xl tracking-tight;
+    line-height: 1.2;
+  }
+
+  h2 {
+    @apply text-xl font-semibold md:text-2xl lg:text-3xl tracking-tight;
+    line-height: 1.3;
+  }
+
+  h3 {
+    @apply text-lg font-medium md:text-xl lg:text-2xl tracking-tight;
+    line-height: 1.4;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background-soft rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-background-softer rounded-full hover:bg-muted transition-colors;
+  }
+
+  /* Focus visible para accesibilidad */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Tap highlight para dispositivos móviles */
+  -webkit-tap-highlight-color:transparent 
+  ;
+}
+
+/* Componentes comunes */
+@layer components {
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-r from-primary to-secondary;
+  }
+
+  .gradient-border {
+    @apply border-2 border-transparent bg-gradient-to-r from-primary to-secondary;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg;
+  }
+
+  .input-base {
+    @apply h-12 rounded-xl bg-background-soft border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all;
+    min-height: 3rem;
+  }
+
+  .button-base {
+    @apply h-12 px-4 rounded-xl font-medium transition-all duration-300 disabled:opacity-50;
+    min-height: 3rem;
+  }
+
+  .button-primary {
+    @apply button-base bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90;
+  }
+
+  .button-secondary {
+    @apply button-base bg-background-soft text-white hover:bg-background-softer;
+  }
+
+  .icon-button {
+    @apply p-3 rounded-full hover:bg-background-soft transition-colors;
+    min-width: 3rem;
+    min-height: 3rem;
+  }
+
+  /* Contenedores responsivos */
+  .container-sm {
+    @apply max-w-screen-sm mx-auto px-4;
+  }
+
+  .container-md {
+    @apply max-w-screen-md mx-auto px-4;
+  }
+
+  .container-lg {
+    @apply max-w-screen-lg mx-auto px-4;
+  }
+
+  /* Cards responsivas */
+  .card-responsive {
+    @apply p-4 sm:p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm;
+    @apply transition-all duration-300 hover:bg-white/10;
+  }
+
+  /* Textos responsivos */
+  .text-responsive {
+    @apply text-sm sm:text-base md:text-lg;
+  }
+
+  /* Dialog responsivo */
+  .dialog-responsive {
+    @apply p-4 sm:p-6 max-w-[95vw] sm:max-w-lg md:max-w-xl w-full mx-auto rounded-t-xl sm:rounded-xl;
+  }
+
+  /* Estilos para inputs dentro de modales */
+  .modal-input {
+    @apply h-12 w-full bg-[#1C1C1E] border-0 rounded-xl text-white placeholder-gray-500;
+    @apply focus:ring-2 focus:ring-[#4ECDC4] focus:ring-opacity-50;
+    @apply transition-all duration-200;
+  }
+}
+
+/* Utilidades */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .touch-target {
+    @apply min-w-[48px] min-h-[48px] flex items-center justify-center;
+  }
+
+  /* Estilos para el scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thumb-gray-700 {
+    scrollbar-color: #374151 transparent;
+  }
+
+  .scrollbar-track-transparent {
+    scrollbar-track-color: transparent;
+  }
+
+  /* Soporte para WebKit (Chrome, Safari, etc.) */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s infinite ease-in-out;
+}
+
+.animate-in {
+  animation: animate-in 0.3s ease-out;
+}
+
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estilos específicos para inputs de fecha */
+input[type="date"],
+input[type="time"] {
+  @apply appearance-none;
+  @apply [color-scheme:dark];
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  @apply filter invert opacity-50 hover:opacity-75 cursor-pointer;
+}
+
+/* Estilos para el modo oscuro */
+.dark {
+  color-scheme: dark;
+}
+
+/* Gradientes animados */
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 6s linear infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Media queries para mejor soporte móvil */
+@media (max-width: 640px) {
+  .dialog-responsive {
+    @apply p-4;
+    width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+
+  .button-responsive {
+    @apply h-12 text-base;
+    min-height: 3rem;
+  }
+
+  .input-responsive {
+    @apply h-12 text-base;
+    min-height: 3rem;
+  }
+
+  /* Aplicar animaciones específicas para móvil */
+  [data-state="open"].dialog-content {
+    animation: slideUpMobile 0.3s ease-out;
+  }
+
+  [data-state="closed"].dialog-content {
+    animation: slideDownMobile 0.3s ease-out;
+  }
+}
+
+/* Soporte para notch y áreas seguras */
+@supports (padding: max(0px)) {
+  .safe-paddings {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+}
+
+/* Prevenir scroll del body cuando el modal está abierto */
+body[data-overlay-open="true"] {
+  @apply overflow-hidden fixed inset-0;
+}
+
+/* Ajustes específicos para iOS */
+@supports (-webkit-touch-callout: none) {
+  .dialog-content {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mejorar el scroll en modales móviles */
+.modal-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.modal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animaciones más suaves para modales */
+@keyframes slideUpMobile {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownMobile {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (hover: none) {
+  .touch-action-none {
+    touch-action: none;
+  }
+}
+
+/* Sistema de grid responsivo */
+.grid-responsive {
+  @apply grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--spacing-md);
+}
+
+/* Contenedor principal responsivo */
+.main-container {
+  @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Cards y elementos interactivos */
+.interactive-element {
+  @apply transition-all duration-300 hover:scale-[1.02] active:scale-[0.98];
+}
+
+/* Botones táctiles */
+.touch-button {
+  @apply min-w-[48px] min-h-[48px] flex items-center justify-center;
+  touch-action: manipulation;
+}
+
+/* Mejoras de rendimiento */
+.gpu {
+  @apply transform-gpu;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Mejoras de accesibilidad para teclado */
+.focus-ring {
+  @apply focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none;
+}
+
+/* Clases para lazy loading de imágenes */
+.lazy-image {
+  @apply opacity-0 transition-opacity duration-500;
+}
+
+.lazy-image.loaded {
+  @apply opacity-100;
+}
+
+/* Clases para efectos de hover en cards */
+.card-effect {
+  @apply relative overflow-hidden transition-all duration-300;
+}
+
+.card-effect::after {
+  content: "";
+  @apply absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 opacity-0 transition-opacity duration-300;
+}
+
+.card-effect:hover::after {
+  @apply opacity-100;
+}
+
+/* Clases para botones con efecto de ripple */
+.btn-ripple {
+  @apply relative overflow-hidden;
+}
+
+.btn-ripple span {
+  @apply relative z-10;
+}
+
+.ripple {
+  @apply absolute rounded-full bg-white/20 transform scale-0 transition-transform duration-700 ease-out;
+  transform-origin: center;
+}
+
+.ripple.active {
+  @apply scale-[15] opacity-0;
+}
+
+/* Clases para efectos de parallax */
+.parallax-container {
+  @apply overflow-hidden relative;
+}
+
+.parallax-bg {
+  @apply absolute inset-0 w-full h-[120%] -top-[10%] transition-transform duration-500 ease-out;
+  transform: translateY(0);
+}
+
+/* Clases para transiciones de página */
+.page-transition-enter {
+  @apply opacity-0;
+}
+
+.page-transition-enter-active {
+  @apply opacity-100 transition-opacity duration-300;
+}
+
+.page-transition-exit {
+  @apply opacity-100;
+}
+
+.page-transition-exit-active {
+  @apply opacity-0 transition-opacity duration-300;
+}
+
+/* Actualizar la importación de fuentes para usar la variable CSS en lugar de importar directamente */
+/* Eliminar o comentar la siguiente línea: */
+/* @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"); */
+
+:host,
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
