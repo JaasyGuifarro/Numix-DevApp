@@ -87,11 +87,18 @@ export async function getTickets(eventId: string, signal?: AbortSignal): Promise
 // Verificar si un ticket es duplicado
 async function isTicketDuplicate(ticket: Ticket, eventId: string): Promise<boolean> {
   try {
+<<<<<<< HEAD
     // Verificar si ya existe un ticket con exactamente la misma información
     // Ahora no solo verificamos el nombre del cliente, sino también los números y cantidades
     const { data, error } = await supabase
       .from("tickets")
       .select("*")
+=======
+    // Verificar si ya existe un ticket con la misma información
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("id")
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
       .eq("event_id", eventId)
       .eq("client_name", ticket.clientName)
       .eq("vendor_email", ticket.vendorEmail || "")
@@ -101,6 +108,7 @@ async function isTicketDuplicate(ticket: Ticket, eventId: string): Promise<boole
       return false
     }
 
+<<<<<<< HEAD
     // Si no hay tickets con el mismo nombre, no es duplicado
     if (!data || data.length === 0) {
       return false
@@ -152,6 +160,10 @@ async function isTicketDuplicate(ticket: Ticket, eventId: string): Promise<boole
       // Si llegamos aquí, los tickets tienen exactamente los mismos números y cantidades
       return true;
     });
+=======
+    // Si encontramos algún ticket (excluyendo el actual en caso de actualización)
+    return data.some((t) => t.id !== ticket.id)
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   } catch (error) {
     console.error("Error in isTicketDuplicate:", error)
     return false
@@ -190,6 +202,7 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
     
     // Verificar cada número consolidado
     for (const [numberToCheck, timesToSell] of numbersInTicket.entries()) {
+<<<<<<< HEAD
       if (isNaN(timesToSell) || timesToSell <= 0) {
         return {
           success: false,
@@ -203,6 +216,19 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
       
       // Solo aplicar restricciones si el número tiene un límite configurado
       if (limitId) {
+=======
+        if (isNaN(timesToSell) || timesToSell <= 0) {
+          return {
+            success: false,
+            status: "error",
+            message: `Cantidad inválida para el número ${numberToCheck}: ${timesToSell}`
+          }
+        }
+        
+        // Verificación estricta de disponibilidad del número
+        const { available, remaining } = await checkNumberAvailability(eventId, numberToCheck, timesToSell, signal)
+        
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
         if (!available) {
           console.warn(`VERIFICACIÓN PREVIA FALLIDA: El número ${numberToCheck} no tiene suficientes tiempos disponibles. Disponible: ${remaining}, Solicitado: ${timesToSell}`)
           return {
@@ -216,9 +242,41 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
             }
           }
         }
+<<<<<<< HEAD
       }
     }
     
+=======
+    }
+    
+    // Verificación adicional para cada fila individual
+    for (const row of ticket.rows) {
+      if (row.actions && row.times) {
+        const numberToCheck = row.actions
+        const timesToSell = parseInt(row.times, 10) || 0
+        
+        if (timesToSell <= 0) continue;
+        
+        // Verificación estricta de disponibilidad del número
+        const { available, remaining } = await checkNumberAvailability(eventId, numberToCheck, timesToSell)
+        
+        if (!available) {
+          console.warn(`VERIFICACIÓN FILA INDIVIDUAL FALLIDA: El número ${numberToCheck} no tiene suficientes tiempos disponibles`)
+          return {
+            success: false,
+            status: "warning",
+            message: `El número ${numberToCheck} solo tiene ${remaining} tiempos disponibles y estás intentando vender ${timesToSell}`,
+            numberInfo: {
+              number: numberToCheck,
+              remaining: remaining,
+              requested: timesToSell
+            }
+          }
+        }
+      }
+    }
+
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     // Verificar si es un ticket duplicado
     const isDuplicate = await isTicketDuplicate(
       { ...ticket, id: "", vendorEmail: currentVendorEmail } as Ticket,
@@ -242,7 +300,39 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
     // Convertir al formato de Supabase
     const supabaseTicket = mapTicketToSupabase(completeTicket, eventId)
 
+<<<<<<< HEAD
     // Incrementar contadores de números vendidos ANTES de crear el ticket
+=======
+    // SEGUNDA VERIFICACIÓN: Verificar nuevamente los límites justo antes de incrementar contadores
+    // Esta es una verificación adicional para evitar condiciones de carrera
+    console.log("VERIFICACIÓN SECUNDARIA: Comprobando límites de números antes de incrementar contadores")
+    for (const row of ticket.rows) {
+      if (row.actions && row.times) {
+        const numberToCheck = row.actions
+        const timesToSell = parseInt(row.times, 10)
+        
+        // Verificación estricta de disponibilidad del número
+        const { available, remaining } = await checkNumberAvailability(eventId, numberToCheck, timesToSell)
+        
+        if (!available) {
+          console.warn(`VERIFICACIÓN SECUNDARIA FALLIDA: El número ${numberToCheck} ya no tiene suficientes tiempos disponibles`)
+          return {
+            success: false,
+            status: "error",
+            message: `El número ${numberToCheck} ya no tiene suficientes tiempos disponibles. Otro usuario puede haber comprado este número mientras procesabas la venta. Disponible: ${remaining}, Solicitado: ${timesToSell}`,
+            numberInfo: {
+              number: numberToCheck,
+              remaining: remaining,
+              requested: timesToSell
+            }
+          }
+        }
+      }
+    }
+
+    // Incrementar contadores de números vendidos ANTES de crear el ticket
+    // Esto asegura que no se pueda crear un ticket si no se pueden incrementar los contadores
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     const incrementResults: {number: string, success: boolean, remaining: number, requested: number}[] = []
     
     for (const row of ticket.rows) {
@@ -250,6 +340,7 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
         const numberToIncrement = row.actions
         const timesToIncrement = parseInt(row.times, 10)
         
+<<<<<<< HEAD
         // Verificar si el número tiene límite antes de intentar incrementar
         const { limitId } = await checkNumberAvailability(eventId, numberToIncrement, timesToIncrement)
         
@@ -288,6 +379,47 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
                 remaining: remaining,
                 requested: timesToIncrement
               }
+=======
+        // Verificar si se puede incrementar el contador sin exceder el límite
+        const incrementSuccess = await incrementNumberSold(eventId, numberToIncrement, timesToIncrement)
+        
+        // Guardar el resultado para cada número
+        const { remaining } = await checkNumberAvailability(eventId, numberToIncrement, timesToIncrement)
+        incrementResults.push({
+          number: numberToIncrement,
+          success: incrementSuccess,
+          remaining: remaining,
+          requested: timesToIncrement
+        })
+        
+        // Si alguno falla, revertir todos los incrementos anteriores y retornar error
+        if (!incrementSuccess) {
+          console.error(`INCREMENTO FALLIDO: No se pudo incrementar el contador para ${numberToIncrement}`)
+          
+          // Revertir incrementos previos exitosos
+          for (const result of incrementResults) {
+            if (result.success) {
+              // Intentar decrementar (revertir) el contador
+              // Nota: Aquí deberíamos tener una función para decrementar, pero usamos una solución temporal
+              console.log(`Intentando revertir incremento para ${result.number}`)
+              // Esta es una solución temporal y no ideal
+              await supabaseAdmin.rpc('decrement_number_sold_safely', {
+                p_event_id: eventId,
+                p_number_range: result.number,
+                p_decrement: result.requested
+              }).catch(e => console.error(`Error al revertir incremento para ${result.number}:`, e))
+            }
+          }
+          
+          return {
+            success: false,
+            status: "error",
+            message: `No se pudo crear el ticket. El número ${numberToIncrement} ha alcanzado su límite máximo de ventas (${remaining} disponibles).`,
+            numberInfo: {
+              number: numberToIncrement,
+              remaining: remaining,
+              requested: timesToIncrement
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
             }
           }
         }
@@ -304,6 +436,7 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
         amount: supabaseTicket.amount,
         numbers: supabaseTicket.numbers,
         vendor_email: supabaseTicket.vendor_email,
+<<<<<<< HEAD
         rows: JSON.stringify(supabaseTicket.rows),
         created_at: new Date().toISOString(), // Añadir timestamp de creación
         updated_at: new Date().toISOString() // Añadir timestamp de actualización
@@ -316,6 +449,12 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
       console.log("Operación createTicket cancelada después de la inserción")
       return null
     }
+=======
+        rows: JSON.stringify(supabaseTicket.rows)
+      })
+      .select()
+      .single()
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 
     if (error) {
       console.error("Error creating ticket in Supabase:", error)
@@ -343,7 +482,11 @@ export async function createTicket(ticket: Omit<Ticket, "id">, eventId: string, 
   }
 }
 
+<<<<<<< HEAD
 // Modificar la función updateTicket para que solo actualice en Supabase con mejor manejo de errores
+=======
+// Modificar la función updateTicket para que solo actualice en Supabase
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 export async function updateTicket(ticket: Ticket, eventId: string, signal?: AbortSignal): Promise<Ticket | null | { success: false, message: string, status: string, numberInfo?: { number: string, remaining: number, requested: number } }> {
   try {
     // Asegurar que el ticket tenga un vendedor asociado
@@ -517,7 +660,11 @@ export async function updateTicket(ticket: Ticket, eventId: string, signal?: Abo
 
     const supabaseTicket = mapTicketToSupabase(updatedTicket, eventId)
 
+<<<<<<< HEAD
     // Solo si todos los incrementos fueron exitosos, actualizar el ticket en Supabase con mejor manejo de errores
+=======
+    // Solo si todos los incrementos fueron exitosos, actualizar el ticket en Supabase
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     const { data, error } = await supabaseAdmin
       .from("tickets")
       .update({
@@ -527,18 +674,25 @@ export async function updateTicket(ticket: Ticket, eventId: string, signal?: Abo
         amount: supabaseTicket.amount,
         numbers: supabaseTicket.numbers,
         vendor_email: supabaseTicket.vendor_email,
+<<<<<<< HEAD
         rows: JSON.stringify(supabaseTicket.rows),
         updated_at: new Date().toISOString() // Añadir timestamp de actualización
+=======
+        rows: JSON.stringify(supabaseTicket.rows)
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
       })
       .eq("id", ticket.id)
       .select()
       .single()
+<<<<<<< HEAD
       
     // Verificar si la operación fue cancelada
     if (signal?.aborted) {
       console.log("Operación updateTicket cancelada después de la actualización")
       return null
     }
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 
     if (error) {
       console.error("Error updating ticket in Supabase:", error)
@@ -555,6 +709,7 @@ export async function updateTicket(ticket: Ticket, eventId: string, signal?: Abo
         }
       }
       
+<<<<<<< HEAD
       // Y restaurar los decrementos
       for (const result of decrementResults) {
         if (result.success) {
@@ -603,6 +758,12 @@ export async function updateTicket(ticket: Ticket, eventId: string, signal?: Abo
       console.error("Error en verificación post-actualización:", verificationError)
     }
     
+=======
+      return null
+    }
+
+    console.log(`Ticket actualizado exitosamente: ${supabaseTicket.id}`)
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     return mapTicketFromSupabase(data)
   } catch (error) {
     console.error("Error in updateTicket:", error)
@@ -781,7 +942,11 @@ export async function migrateTicketsWithoutVendor(eventId: string): Promise<bool
   }
 }
 
+<<<<<<< HEAD
 // Modificar la función subscribeToTickets para optimizar rendimiento y evitar actualizaciones innecesarias
+=======
+// Modificar la función subscribeToTickets para mantenerla funcional
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 export function subscribeToTickets(eventId: string, callback: (tickets: Ticket[]) => void): () => void {
   // Verificar si estamos en el navegador
   if (typeof window === "undefined") {
@@ -796,6 +961,7 @@ export function subscribeToTickets(eventId: string, callback: (tickets: Ticket[]
     return () => {}
   }
 
+<<<<<<< HEAD
   // Variables para control de reconexión
   let reconnectAttempts = 0
   const maxReconnectAttempts = 5
@@ -975,6 +1141,121 @@ export function subscribeToTickets(eventId: string, callback: (tickets: Ticket[]
         console.warn("Error al remover canal:", error)
       }
     }
+=======
+  try {
+    // Crear un canal con un ID único para evitar conflictos
+    const channelId = `tickets-changes-${eventId}-${currentVendorEmail}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+    console.log(`Creando canal de suscripción para tickets: ${channelId}`)
+
+    // Verificar si ya existe una suscripción activa y eliminarla
+    const existingChannels = supabase.getChannels()
+    existingChannels.forEach(channel => {
+      if (channel.topic.startsWith(`realtime:tickets-changes-${eventId}-${currentVendorEmail}`)) {
+        console.log(`Eliminando canal existente: ${channel.topic}`)
+        try {
+          supabase.removeChannel(channel)
+        } catch (removeError) {
+          console.error("Error al eliminar canal existente:", removeError)
+          // Continuar con la operación incluso si hay error al eliminar
+        }
+      }
+    })
+    
+    // Esperar un momento después de eliminar canales para evitar conflictos
+    // Variable para rastrear si el canal está activo
+    let isChannelActive = true;
+
+    const channel = supabase.channel(channelId, {
+      config: {
+        broadcast: { self: true },
+        presence: { key: "" },
+        // Aumentar el tiempo de espera para evitar cierres prematuros
+        timeout: 60000, // 60 segundos
+        retryIntervalMs: 3000, // 3 segundos entre reintentos
+      },
+    })
+
+    // Configurar la suscripción con manejo de errores mejorado
+    channel
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: "public",
+          table: "tickets",
+          filter: `event_id=eq.${eventId}&vendor_email=eq.${currentVendorEmail}`,
+        },
+        async (payload) => {
+          // Evitar procesamiento si el canal ya no está activo
+          if (!isChannelActive) return;
+          
+          try {
+            console.log("Cambio detectado en tickets:", payload)
+            // Cuando hay un cambio, obtener todos los tickets actualizados
+            const tickets = await getTickets(eventId)
+            
+            // Verificar nuevamente si el canal sigue activo antes de llamar al callback
+            if (isChannelActive) {
+              try {
+                callback(tickets)
+              } catch (callbackError) {
+                console.error("Error en callback de tickets:", callbackError)
+              }
+            }
+          } catch (error) {
+            console.error("Error al procesar cambio en tickets:", error)
+          }
+        },
+      )
+      .subscribe((status, error) => {
+        console.log(`Estado de suscripción a tickets (${channelId}):`, status)
+
+        if (status === 'SUBSCRIBED') {
+          console.log(`Suscripción activa para tickets: ${channelId}`)
+          // Cargar datos iniciales después de suscribirse
+          getTickets(eventId)
+            .then(tickets => {
+              if (isChannelActive) {
+                try {
+                  callback(tickets)
+                } catch (initialCallbackError) {
+                  console.error("Error en callback inicial:", initialCallbackError)
+                }
+              }
+            })
+            .catch(initialDataError => {
+              console.error("Error al cargar datos iniciales:", initialDataError)
+            })
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`Error en la suscripción a tickets (${channelId}):`, error)
+        } else if (status === 'CLOSED') {
+          console.log(`Canal cerrado: ${channelId}`)
+          isChannelActive = false;
+        } else if (status === 'TIMED_OUT') {
+          console.log(`Canal con timeout: ${channelId}`)
+          isChannelActive = false;
+        }
+      })
+
+    // Devolver función para cancelar la suscripción
+    return () => {
+      console.log(`Cancelando suscripción al canal de tickets ${channelId}`)
+      isChannelActive = false;
+      try {
+        supabase.removeChannel(channel)
+      } catch (cleanupError) {
+        console.error("Error al limpiar canal:", cleanupError)
+        // Continuar incluso si hay error al limpiar
+      }
+    }
+  } catch (error) {
+    console.error("Error al crear suscripción a tickets:", error)
+    // Retornar una función vacía en caso de error
+    return () => {
+      console.log("Limpieza de suscripción a tickets fallida")
+    }
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   }
 }
 

@@ -3,7 +3,10 @@
 import { useState, useCallback } from "react"
 import { createTicket, updateTicket, deleteTicket } from "@/lib/tickets"
 import { PRICE_PER_TIME } from "@/lib/constants"
+<<<<<<< HEAD
 import { generateUUID } from "@/lib/uuid-utils"
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 
 interface TicketRow {
   id: string
@@ -23,8 +26,12 @@ interface Ticket {
 
 export function useTickets(eventId: string, onSuccess?: () => void) {
   const [clientName, setClientName] = useState("")
+<<<<<<< HEAD
   // Usar generateUUID para el ID inicial para garantizar unicidad en todos los entornos
   const [ticketRows, setTicketRows] = useState<TicketRow[]>([{ id: generateUUID(), times: "", actions: "", value: 0 }])
+=======
+  const [ticketRows, setTicketRows] = useState<TicketRow[]>([{ id: "1", times: "", actions: "", value: 0 }])
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
@@ -33,6 +40,7 @@ export function useTickets(eventId: string, onSuccess?: () => void) {
   const totalPurchase = totalTimes * PRICE_PER_TIME
 
   const handleInputChange = useCallback((rowId: string, field: "times" | "actions", value: string) => {
+<<<<<<< HEAD
     // Solo validar rango 0-99 para el campo "actions", pero permitir valor vacío para borrado
     if (field === "actions" && value !== "") {
       // Verificar si es una operación de borrado (longitud menor que el valor actual)
@@ -49,16 +57,34 @@ export function useTickets(eventId: string, onSuccess?: () => void) {
     // Actualizar el estado
     setTicketRows(rows => 
       rows.map(row => {
+=======
+    // Solo validar rango 0-99 para el campo "actions"
+    if (field === "actions") {
+      const numValue = Number.parseInt(value, 10)
+      if (isNaN(numValue) || numValue < 0 || numValue > 99) return
+    }
+
+    setTicketRows((rows) =>
+      rows.map((row) => {
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
         if (row.id === rowId) {
           return {
             ...row,
             [field]: value,
             value: field === "times" ? Number(value) * PRICE_PER_TIME : row.value,
+<<<<<<< HEAD
           };
         }
         return row;
       })
     );
+=======
+          }
+        }
+        return row
+      }),
+    )
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   }, [])
 
   const removeRow = useCallback((rowId: string) => {
@@ -66,16 +92,24 @@ export function useTickets(eventId: string, onSuccess?: () => void) {
   }, [])
 
   const addNewRow = useCallback(() => {
+<<<<<<< HEAD
     // Usar generateUUID para garantizar IDs únicos y evitar duplicaciones
     // que podrían ocurrir con Date.now() si se ejecuta muy rápidamente
     const newRowId = generateUUID()
+=======
+    const newRowId = String(Date.now())
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     setTicketRows((prevRows) => [...prevRows, { id: newRowId, times: "", actions: "", value: 0 }])
   }, [])
 
   const resetForm = useCallback(() => {
     setClientName("")
+<<<<<<< HEAD
     // Usar generateUUID para garantizar IDs únicos al resetear el formulario
     setTicketRows([{ id: generateUUID(), times: "", actions: "", value: 0 }])
+=======
+    setTicketRows([{ id: "1", times: "", actions: "", value: 0 }])
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     setSelectedTicket(null)
   }, [])
 
@@ -96,7 +130,11 @@ export function useTickets(eventId: string, onSuccess?: () => void) {
       const currentVendorEmail = localStorage.getItem("currentVendorEmail")
 
       const ticketData = {
+<<<<<<< HEAD
         id: selectedTicket ? selectedTicket.id : generateUUID(),
+=======
+        id: selectedTicket ? selectedTicket.id : crypto.randomUUID(),
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
         clientName,
         amount: totalPurchase,
         numbers: ticketRows

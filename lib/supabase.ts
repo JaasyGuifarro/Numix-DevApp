@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/supabase"
 import { logError, logInfo, LogLevel, log } from "./error-logger"
+<<<<<<< HEAD
 import type { RealtimeChannel } from "@supabase/supabase-js"
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 
 // Crear el cliente de Supabase usando variables de entorno con fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ngzyyhebrphetphtlesu.supabase.co"
@@ -45,7 +48,12 @@ function createRobustClient(url: string, key: string) {
       },
       // Configuración mejorada para conexiones realtime
       heartbeatIntervalMs: 25000, // Aumentado para reducir tráfico
+<<<<<<< HEAD
       reconnectAfterMs: (attempts: number) => {
+=======
+      disconnectAfterMs: 120000, // Aumentado para mayor tolerancia a desconexiones temporales
+      reconnectAfterMs: (attempts) => {
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
         // Backoff exponencial con jitter para reconexiones
         const baseDelay = Math.min(1000 * Math.pow(1.8, attempts), 30000); // Máximo 30 segundos
         const jitter = Math.random() * 2000; // Añadir hasta 2 segundos de jitter
@@ -102,13 +110,17 @@ let connectionAttempts = 0;
 let isReconnecting = false;
 const MAX_RECONNECT_ATTEMPTS = 10;
 let reconnectTimeout: NodeJS.Timeout | null = null;
+<<<<<<< HEAD
 let activeChannels = new Set<string>();
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 
 /**
  * Verifica la conexión a Realtime y devuelve un booleano
  */
 export async function checkRealtimeConnection() {
   try {
+<<<<<<< HEAD
     const channelId = `test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const channel = supabase
       .channel(channelId)
@@ -139,6 +151,24 @@ export async function checkRealtimeConnection() {
       logError(new Error(`Error en suscripción Realtime: ${subscribeError}`), "checkRealtimeConnection");
       return false;
     }
+=======
+    const { error } = await supabase
+      .channel("test")
+      .on("system", { event: "connected" }, () => {})
+      .on("system", { event: "error" }, (payload) => {
+        logError(new Error(`Error en evento Realtime: ${JSON.stringify(payload)}`), "checkRealtimeConnection");
+      })
+      .subscribe()
+    
+    // Si no hay error, resetear los intentos de conexión
+    if (!error) {
+      connectionAttempts = 0;
+      return true;
+    }
+    
+    logError(new Error(`Error en conexión Realtime: ${error.message || JSON.stringify(error)}`), "checkRealtimeConnection");
+    return false;
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   } catch (error) {
     logError(error instanceof Error ? error : new Error(String(error)), "checkRealtimeConnection");
     return false;
@@ -146,6 +176,7 @@ export async function checkRealtimeConnection() {
 }
 
 /**
+<<<<<<< HEAD
  * Limpia todos los canales activos
  */
 function cleanupActiveChannels() {
@@ -160,6 +191,8 @@ function cleanupActiveChannels() {
 }
 
 /**
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
  * Intenta cambiar al siguiente servidor disponible
  */
 export async function switchToNextServer() {
@@ -167,9 +200,12 @@ export async function switchToNextServer() {
   isReconnecting = true;
   
   try {
+<<<<<<< HEAD
     // Limpiar canales existentes antes de cambiar de servidor
     cleanupActiveChannels();
     
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     // Incrementar el índice del servidor actual
     currentServerIndex = (currentServerIndex + 1) % FALLBACK_SERVERS.length;
     
@@ -189,6 +225,7 @@ export async function switchToNextServer() {
     logInfo(`Cambiando al servidor ${currentServerIndex} (intento ${connectionAttempts})`);
     
     // Crear un nuevo cliente con el servidor actual
+<<<<<<< HEAD
     const newClient = createRobustClient(url, key);
     
     // Verificar que el nuevo cliente funciona antes de reemplazar el actual
@@ -227,6 +264,32 @@ export async function switchToNextServer() {
       
       return false;
     }
+=======
+    supabase = createRobustClient(url, key);
+    
+    // Verificar la conexión
+    const isConnected = await checkRealtimeConnection();
+    
+    if (isConnected) {
+      logInfo(`Conexión establecida con el servidor ${currentServerIndex}`);
+      isReconnecting = false;
+      return true;
+    }
+    
+    // Si no se pudo conectar, intentar con el siguiente servidor después de un retraso
+    const delay = Math.min(2000 * Math.pow(1.5, connectionAttempts), 15000);
+    
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+    }
+    
+    reconnectTimeout = setTimeout(() => {
+      isReconnecting = false;
+      switchToNextServer();
+    }, delay);
+    
+    return false;
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   } catch (error) {
     logError(error instanceof Error ? error : new Error(String(error)), "switchToNextServer");
     isReconnecting = false;
@@ -245,6 +308,7 @@ export function initConnectionMonitoring() {
   console.error = function(...args) {
     const errorString = args.join(' ');
     
+<<<<<<< HEAD
     // Detectar errores específicos de WebSocket y conexión
     if (
       (errorString.includes('WebSocket connection') || 
@@ -255,6 +319,16 @@ export function initConnectionMonitoring() {
        errorString.includes('undefined'))
     ) {
       log(LogLevel.WARN, "Detectado error de conexión", { error: errorString });
+=======
+    // Detectar errores específicos de WebSocket
+    if (
+      errorString.includes('WebSocket connection') && 
+      (errorString.includes('ERR_ADDRESS_UNREACHABLE') || 
+       errorString.includes('failed') || 
+       errorString.includes('error'))
+    ) {
+      log(LogLevel.WARN, "Detectado error de conexión WebSocket", { error: errorString });
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
       
       // Intentar reconectar automáticamente
       if (!isReconnecting) {
@@ -282,6 +356,7 @@ export function initConnectionMonitoring() {
   });
   
   // Verificar la conexión periódicamente
+<<<<<<< HEAD
   const checkInterval = setInterval(async () => {
     if (!navigator.onLine || isReconnecting) return;
     
@@ -296,6 +371,16 @@ export function initConnectionMonitoring() {
     clearInterval(checkInterval);
     cleanupActiveChannels();
   });
+=======
+  setInterval(async () => {
+    if (navigator.onLine && !isReconnecting) {
+      const isConnected = await checkRealtimeConnection();
+      if (!isConnected && connectionAttempts < MAX_RECONNECT_ATTEMPTS) {
+        switchToNextServer();
+      }
+    }
+  }, 60000); // Verificar cada minuto
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 }
 
 // Inicializar el monitoreo de conexión

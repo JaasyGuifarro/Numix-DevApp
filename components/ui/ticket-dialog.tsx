@@ -1,8 +1,12 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+<<<<<<< HEAD
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+=======
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 import { Separator } from "@/components/ui/separator"
 import { Check, Trash2 } from "lucide-react"
 import { PRICE_PER_TIME } from "@/lib/constants"
@@ -24,9 +28,15 @@ interface TicketDialogProps {
   ticketRows: TicketRow[]
   onInputChange: (rowId: string, field: "times" | "actions", value: string) => void
   onAddRow: () => void
+<<<<<<< HEAD
   onRemoveRow?: (rowId: string) => void
   onComplete: () => void
   onDelete?: () => void
+=======
+  onComplete: () => void
+  onDelete?: () => void
+  onRemoveRow?: (rowId: string) => void
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   isReadOnly?: boolean
   title?: string
   selectedTicket?: any
@@ -44,9 +54,15 @@ export function TicketDialog({
   ticketRows,
   onInputChange,
   onAddRow,
+<<<<<<< HEAD
   onRemoveRow,
   onComplete,
   onDelete,
+=======
+  onComplete,
+  onDelete,
+  onRemoveRow,
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   isReadOnly = false,
   title = "Nuevo ticket",
   selectedTicket,
@@ -62,6 +78,7 @@ export function TicketDialog({
   const focusTrapRef = useFocusTrap(open)
 
   return (
+<<<<<<< HEAD
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="bg-black/95 text-white border-gray-800 max-w-md w-[95%] mx-auto fixed-size"
@@ -85,6 +102,13 @@ export function TicketDialog({
           textSizeAdjust: 'none',
           WebkitTextSizeAdjust: 'none'
         }}
+=======
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="bg-black/95 text-white border-gray-800 max-w-md w-[95%] mx-auto"
+        ref={focusTrapRef}
+        id="ticket-dialog-content"
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
       >
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-center">{title}</DialogTitle>
@@ -147,7 +171,10 @@ export function TicketDialog({
               required
               disabled={isReadOnly}
               aria-invalid={!clientName && !isReadOnly ? "true" : undefined}
+<<<<<<< HEAD
               style={{ fontSize: 'inherit' }}
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
             />
           </AccessibleFormField>
 
@@ -165,6 +192,7 @@ export function TicketDialog({
                     <span className="text-center">{row.times}</span>
                   ) : (
                     <Input
+<<<<<<< HEAD
                       type="text"
                       inputMode="text"
                       min="0"
@@ -186,6 +214,12 @@ export function TicketDialog({
                           }
                         }
                       }}
+=======
+                      type="number"
+                      min="0"
+                      value={row.times}
+                      onChange={(e) => onInputChange(row.id, "times", e.target.value)}
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
                       className="bg-white/10 border-0 text-white text-center"
                       aria-labelledby="column-times"
                       aria-label={`Tiempos para fila ${index + 1}`}
@@ -197,6 +231,7 @@ export function TicketDialog({
                     <span className="text-center">{row.actions}</span>
                   ) : (
                     <Input
+<<<<<<< HEAD
                       type="text"
                       inputMode="text"
                       min="0"
@@ -237,12 +272,20 @@ export function TicketDialog({
                           }
                         }
                       }}
+=======
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={row.actions}
+                      onChange={(e) => onInputChange(row.id, "actions", e.target.value)}
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
                       className="bg-white/10 border-0 text-white text-center"
                       aria-labelledby="column-actions"
                       aria-label={`Acciones para fila ${index + 1}`}
                     />
                   )}
                 </div>
+<<<<<<< HEAD
                 <div className="flex items-center justify-center">
                   <div
                     className="flex-grow text-[#4ECDC4] font-bold text-center"
@@ -261,11 +304,36 @@ export function TicketDialog({
                       aria-label={`Eliminar fila ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4" />
+=======
+                <div
+                  className="flex items-center justify-center gap-2"
+                  aria-labelledby="column-value"
+                >
+                  <span 
+                    className="text-[#4ECDC4] font-bold"
+                    aria-label={`Valor para fila ${index + 1}: $${row.value.toFixed(2)}`}
+                  >
+                    ${row.value.toFixed(2)}
+                  </span>
+                  {!isReadOnly && onRemoveRow && ticketRows.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onRemoveRow(row.id)}
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-400 hover:bg-transparent"
+                      aria-label={`Eliminar fila ${index + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
                     </Button>
                   )}
                 </div>
               </div>
             ))}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
             {!isReadOnly && (
               <Button
                 onClick={onAddRow}
@@ -328,7 +396,23 @@ export function TicketDialog({
                   Volver
                 </Button>
                 <Button
+<<<<<<< HEAD
                   onClick={onComplete}
+=======
+                  onClick={(e) => {
+                    // Prevenir múltiples clics deshabilitando el botón temporalmente
+                    const button = e.currentTarget;
+                    button.setAttribute('disabled', 'true');
+                    
+                    // Cerrar el modal inmediatamente para evitar que reaparezca
+                    onOpenChange(false);
+                    
+                    // Ejecutar la acción de completar después de cerrar el modal
+                    setTimeout(() => {
+                      onComplete();
+                    }, 100);
+                  }}
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
                   disabled={!clientName || totalTimes === 0}
                   className="h-12 bg-gradient-to-r from-[#FF6B6B] to-[#4ECDC4] hover:opacity-90 text-black font-medium"
                   aria-label={selectedTicket ? "Actualizar ticket" : "Completar ticket"}
@@ -340,9 +424,17 @@ export function TicketDialog({
           </div>
         </div>
       </DialogContent>
+<<<<<<< HEAD
     </DialogPrimitive.Root>
+=======
+    </Dialog>
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   )
 }
 
 // Exportar también como default para permitir ambos tipos de importación
 export default TicketDialog
+<<<<<<< HEAD
+=======
+
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991

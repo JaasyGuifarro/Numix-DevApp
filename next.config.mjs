@@ -24,12 +24,15 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+<<<<<<< HEAD
   // Configuración para manejar diferencias de hidratación
   reactStrictMode: true,
   compiler: {
     // Suprimir los warnings de hidratación
     reactRemoveProperties: process.env.NODE_ENV === 'production' ? { properties: ['^__gchrome_uniqueid$'] } : false,
   },
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 }
 
 mergeConfig(nextConfig, userConfig)

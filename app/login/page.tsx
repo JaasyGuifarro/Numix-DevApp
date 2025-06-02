@@ -1,11 +1,16 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState, useEffect } from "react"
+=======
+import { useState } from "react"
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+<<<<<<< HEAD
 import { type CheckedState } from "@radix-ui/react-checkbox"
 
 export default function LoginPage() {
@@ -21,6 +26,12 @@ export default function LoginPage() {
     setRememberMe(checked === true)
   }
 
+=======
+
+export default function LoginPage() {
+  const [rememberMe, setRememberMe] = useState(false)
+
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
       <Card className="w-[350px]">
@@ -33,6 +44,7 @@ export default function LoginPage() {
             <div className="grid gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
+<<<<<<< HEAD
                 <Input 
                   id="email" 
                   placeholder="mario@example.com" 
@@ -40,6 +52,9 @@ export default function LoginPage() {
                   name="email"
                   suppressHydrationWarning
                 />
+=======
+                <Input id="email" placeholder="mario@example.com" type="email" name="email" />
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
@@ -50,6 +65,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   aria-label="Ingresa tu contraseña"
                   required
+<<<<<<< HEAD
                   suppressHydrationWarning
                 />
               </div>
@@ -70,6 +86,24 @@ export default function LoginPage() {
                   </label>
                 </div>
               )}
+=======
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  aria-label="Recordarme en este dispositivo"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Recordarme en este dispositivo
+                </label>
+              </div>
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
             </div>
           </form>
         </CardContent>

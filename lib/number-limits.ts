@@ -238,6 +238,7 @@ export async function incrementNumberSold(
   increment: number
 ): Promise<boolean> {
   try {
+<<<<<<< HEAD
     // Optimización: Verificar directamente si hay un límite aplicable sin llamar a checkNumberAvailability
     // Esto evita una verificación redundante ya que checkNumberAvailability ya fue llamado previamente
     // en la función createTicket antes de llegar aquí
@@ -271,6 +272,17 @@ export async function incrementNumberSold(
     }
     
     // Si no hay límite aplicable, no hay problema
+=======
+    // Verificar primero si el número está disponible para vender
+    const { available, remaining, limitId } = await checkNumberAvailability(eventId, numberToIncrement, increment)
+    
+    // Si no está disponible, rechazar inmediatamente
+    if (!available) {
+      return false
+    }
+    
+    // Si no hay límite aplicable (limitId es undefined o inválido), no hay problema
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
     if (!limitId) {
       log(LogLevel.DEBUG, `No hay límite aplicable para el número ${numberToIncrement}`)
       return true
@@ -986,12 +998,16 @@ export function subscribeToNumberLimits(
                 reject(new Error('Ping timeout'));
               }, 5000); // 5 segundos de timeout para el ping
               
+<<<<<<< HEAD
               // NOTA: La API de Supabase Realtime no soporta el método receive() en el resultado de send()
               // Por lo tanto, usamos un enfoque basado en timeout para considerar el ping exitoso
+=======
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
               channel.send({
                 type: 'broadcast',
                 event: 'ping',
                 payload: { timestamp: Date.now() }
+<<<<<<< HEAD
               });
               
               // Si no hay error al enviar, consideramos el ping exitoso después de un breve retraso
@@ -1001,6 +1017,21 @@ export function subscribeToNumberLimits(
                 pingSuccess = true;
                 resolve();
               }, 500);
+=======
+              }).receive('ok', () => {
+                clearTimeout(timeoutId);
+                pingSuccess = true;
+                resolve();
+              }).receive('error', (err) => {
+                clearTimeout(timeoutId);
+                log(LogLevel.WARN, `Error en ping: ${err}`);
+                reject(new Error(`Error en ping: ${err}`));
+              }).receive('timeout', () => {
+                clearTimeout(timeoutId);
+                log(LogLevel.WARN, 'Timeout en ping');
+                reject(new Error('Timeout en ping'));
+              });
+>>>>>>> 624c5503d96cf6f2927785c1f1d25f0199826991
             });
             
             // Si llegamos aquí, el ping fue exitoso
